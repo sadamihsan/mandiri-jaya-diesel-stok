@@ -1,1 +1,0 @@
-# mandiri-jaya-diesel-stok
