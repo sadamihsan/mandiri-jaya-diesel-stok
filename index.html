@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>STOCK MANDIRI JAYA DIESEL</title>
+    <link href="https://jsdelivr.net" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="container my-5">
+    <h2 class="text-center mb-5 fw-bold">📦 Sistem Manajemen Stok Barang</h2>
+
+    <!-- Kartu Informasi Keuangan Gunting & Ringkasan Gudang -->
+    <div class="row mb-4 g-3">
+        <div class="col-md-3">
+            <div class="card p-4 stat-card-blue">
+                <h5 class="text-muted small text-uppercase mb-1">Total Jenis</h5>
+                <h2 id="totalJenis" class="m-0 fw-bold">0</h2>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card p-4 stat-card-orange">
+                <h5 class="text-muted small text-uppercase mb-1">Total Modal</h5>
+                <h2 class="m-0 fw-bold text-warning">Rp <span id="totalModal">0</span></h2>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card p-4 stat-card-blue">
+                <h5 class="text-muted small text-uppercase mb-1">Nilai Jual Aset</h5>
+                <h2 class="m-0 fw-bold text-primary">Rp <span id="totalAset">0</span></h2>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card p-4 stat-card-green">
+                <h5 class="text-muted small text-uppercase mb-1">Est. Keuntungan</h5>
+                <h2 class="m-0 fw-bold text-success">Rp <span id="totalUntung">0</span></h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Kolom Input Data -->
+        <div class="col-lg-4">
+            <div class="card p-4">
+                <h4 class="fw-bold mb-4 text-secondary" style="font-size: 1.2rem;">Tambah Barang Baru</h4>
+                <form id="formBarang">
+                    <div class="mb-3">
+                        <label class="form-label">Nama Barang</label>
+                        <input type="text" id="namaBarang" class="form-control" required placeholder="Contoh: Kemeja Flanel">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Jumlah Stok</label>
+                        <input type="number" id="stokBarang" class="form-control" required min="0" placeholder="0">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Harga Modal Satuan (Rp)</label>
+                        <input type="number" id="hargaModal" class="form-control" required min="0" placeholder="0">
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label">Harga Jual Satuan (Rp)</label>
+                        <input type="number" id="hargaJual" class="form-control" required min="0" placeholder="0">
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold">Simpan ke Gudang</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Kolom Tabel Monitor -->
+        <div class="col-lg-8">
+            <div class="card p-4">
+                <div class="row align-items-center mb-4 g-2">
+                    <div class="col-sm-6">
+                        <h4 class="fw-bold m-0 text-secondary" style="font-size: 1.2rem;">Daftar Stok Saat Ini</h4>
+                    </div>
+                    <div class="col-sm-6">
+                        <input type="text" id="cariBarang" class="form-control" placeholder="🔍 Cari nama produk...">
+                    </div>
+                </div>
+                
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead>
+                            <tr>
+                                <th>Nama Barang</th>
+                                <th style="width: 130px;">Stok</th>
+                                <th>Harga Modal</th>
+                                <th>Harga Jual</th>
+                                <th>Total Nilai Jual</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabelStok"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let databaseStok = JSON.parse(localStorage.getItem('databaseStok')) || [];
+    const formBarang = document.getElementById('formBarang');
+    const tabelStok = document.getElementById('tabelStok');
+    const cariBarang = document.getElementById('cariBarang');
+
+    function simpanKeLokal() {
+        localStorage.setItem('databaseStok', JSON.stringify(databaseStok));
+        tampilkanData();
+    }
+
+    function formatRupiah(angka) {
+        return new Intl.NumberFormat('id-ID').format(angka);
+    }
+
+    function tampilkanData(filter = '') {
+        tabelStok.innerHTML = '';
+        let totalJenis = 0;
+        let totalModalGudang = 0;
+        let totalAsetGudang = 0;
+
+        databaseStok.forEach((barang, index) => {
+            if (!barang.nama.toLowerCase().includes(filter.toLowerCase())) return;
+            totalJenis++;
+            
+            // Perhitungan per baris barang
+            const totalNilaiJual = barang.stok * barang.hargaJual;
+            const totalNilaiModal = barang.stok * barang.hargaModal;
+            
+            // Akumulasi total dashboard
+            totalModalGudang += totalNilaiModal;
+            totalAsetGudang += totalNilaiJual;
+
+            const baris = document.createElement('tr');
+            baris.innerHTML = `
+                <td><span class="fw-semibold text-dark">${barang.nama}</span></td>
+                <td>
+                    <div class="d-flex align-items-center">
+                        <button type="button" class="btn-stok" onclick="ubahStok(${index}, -1)">-</button>
+                        <span class="badge-stok">${barang.stok}</span>
+                        <button type="button" class="btn-stok" onclick="ubahStok(${index}, 1)">+</button>
+                    </div>
+                </td>
+                <td class="text-muted">Rp ${formatRupiah(barang.hargaModal)}</td>
+                <td class="text-muted">Rp ${formatRupiah(barang.hargaJual)}</td>
+                <td class="fw-bold text-dark">Rp ${formatRupiah(totalNilaiJual)}</td>
+                <td>
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="hapusBarang(${index})">Hapus</button>
+                </td>
+            `;
+            tabelStok.appendChild(baris);
+        });
+
+        // Hitung estimasi keuntungan bersih (Aset Jual - Aset Modal)
+        const totalUntungGudang = totalAsetGudang - totalModalGudang;
+
+        // Render hasil hitung ke kartu ringkasan atas
+        document.getElementById('totalJenis').innerText = totalJenis;
+        document.getElementById('totalModal').innerText = formatRupiah(totalModalGudang);
+        document.getElementById('totalAset').innerText = formatRupiah(totalAsetGudang);
+        document.getElementById('totalUntung').innerText = formatRupiah(totalUntungGudang);
+    }
+
+    formBarang.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const nama = document.getElementById('namaBarang').value;
+        const stok = parseInt(document.getElementById('stokBarang').value);
+        const hargaModal = parseInt(document.getElementById('hargaModal').value);
+        const hargaJual = parseInt(document.getElementById('hargaJual').value);
+        
+        databaseStok.push({ nama, stok, hargaModal, hargaJual });
+        formBarang.reset();
+        simpanKeLokal();
+    });
+
+    function ubahStok(index, jumlah) {
+        if (databaseStok[index].stok + jumlah >= 0) {
+            databaseStok[index].stok += jumlah;
+            simpanKeLokal();
+        }
+    }
+
+    function hapusBarang(index) {
+        if (confirm(`Apakah Anda yakin ingin menghapus "${databaseStok[index].nama}"?`)) {
+            databaseStok.splice(index, 1);
+            simpanKeLokal();
+        }
+    }
+
+    cariBarang.addEventListener('input', function(e) { tampilkanData(e.target.value); });
+    tampilkanData();
+</script>
+</body>
+</html>
